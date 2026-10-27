@@ -56,3 +56,19 @@ export function parseOrThrow<T>(schema: z.ZodType<T>, data: unknown): T {
   }
   return result.data;
 }
+
+export const chatSchema = z.object({
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1).max(1000),
+      }),
+    )
+    .min(1)
+    .max(30),
+});
+
+export const confirmSchema = z.object({
+  pendingId: z.string().min(1, "pendingId is required"),
+});

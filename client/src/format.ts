@@ -1,0 +1,1 @@
+export const inr = (n: number) => "₹" + n.toLocaleString("en-IN");

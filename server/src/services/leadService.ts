@@ -9,8 +9,7 @@ export const toApplicationId = (id: number) => `GL-${1000 + id}`;
 
 export const maskMobile = (m: string) => `${m.slice(0, 4)}XXXX${m.slice(-2)}`;
 
-export async function createLead(input: LeadBody) {
-  // 404: plan exist karta hai?
+export async function prepareLead(input: LeadBody) {
   const plan = await prisma.loanScheme.findFirst({
     where: { id: input.planId, isActive: true },
   });
@@ -18,7 +17,6 @@ export async function createLead(input: LeadBody) {
     throw new AppError(404, "PLAN_NOT_FOUND", `Loan plan ${input.planId} not found`);
   }
 
-  // 409: 7 din mein same mobile
   const since = new Date(Date.now() - DUPLICATE_WINDOW_MS);
   const existing = await prisma.lead.findFirst({
     where: { mobileNumber: input.mobileNumber, createdAt: { gte: since } },
@@ -37,12 +35,16 @@ export async function createLead(input: LeadBody) {
     );
   }
 
-  // server khud numbers nikalta hai, client ke numbers pe bharosa nahi
   const q = computeQuote({
     netWeightGrams: input.netWeightGrams,
     karat: input.karat,
     maxLtvBp: plan.maxLtvBp,
   });
+  return { plan, q };
+}
+
+export async function createLead(input: LeadBody) {
+  const { plan, q } = await prepareLead(input);
 
   const lead = await prisma.lead.create({
     data: {
