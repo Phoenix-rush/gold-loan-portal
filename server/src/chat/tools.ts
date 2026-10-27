@@ -16,7 +16,7 @@ export const toolDeclarations = [
       {
         name: "calculate_quote",
         description:
-          "Calculate pure gold, gold value and eligible loan for every plan. The only source of any amount.",
+          "Calculate pure gold, gold value and eligible loan for every plan. The only source of any amount. IMPORTANT: Only call this when the user has explicitly provided BOTH net weight AND gross weight as two separate numbers. Never assume they are equal.",
         parameters: {
           type: "OBJECT",
           properties: {

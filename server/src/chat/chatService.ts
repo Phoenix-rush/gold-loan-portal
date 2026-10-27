@@ -21,7 +21,8 @@ TOOLS AND NUMBERS
 - If a tool returns an error, explain it in plain words and ask the user to fix the input. Never retry with invented values.
 
 COLLECTING DETAILS
-- A quote needs net weight (g), gross weight (g) and karat (18, 22 or 24). If the user gives only one weight or just "grams", ask which it is and ask for the missing one. Never guess or assume they are equal.
+- A quote needs THREE inputs from the user: net weight (g), gross weight (g) and karat (18, 22 or 24).
+- CRITICAL: net weight and gross weight are TWO DIFFERENT numbers. If the user mentions only ONE weight (e.g. "45 grams" or "my gold weighs 50g"), you do NOT know the other weight. You MUST ask for BOTH before calling calculate_quote. NEVER assume net weight equals gross weight. NEVER fill in one from the other. NEVER call calculate_quote until the user has explicitly stated two separate weight numbers.
 - Applying also needs the user's full name, 10-digit mobile number and chosen plan. Ask for what is missing, one or two things at a time.
 - Pass values exactly as the user stated them.
 
@@ -37,12 +38,12 @@ SAFETY
 - Do not repeat the full mobile number unless needed.
 
 STYLE
-- Short and friendly. Reply in the user's language (English, Hindi or Hinglish). Use rupee amounts exactly as the tools return them.`;
+- Short and friendly. Reply in the user's language (English, Hindi or Hinglish). Use rupee amounts exactly as the tools return them.
+- Write rupee amounts with Indian digit grouping: \u20B92,88,750 and \u20B92,16,562 (not \u20B9288,750). Do not change any digits, only the commas.`;
 
 const MAX_STEPS = 6;
 
 export async function runChat(messages: ChatMsg[]) {
-  // Gemini ko conversation user se shuru chahiye
   const trimmed = [...messages];
   while (trimmed.length && trimmed[0]!.role !== "user") trimmed.shift();
 
@@ -52,6 +53,7 @@ export async function runChat(messages: ChatMsg[]) {
   }));
 
   const ctx: ToolCtx = {};
+  const used: string[] = [];
 
   for (let i = 0; i < MAX_STEPS; i++) {
     const content = await generate(SYSTEM_PROMPT, contents, toolDeclarations);
@@ -62,17 +64,23 @@ export async function runChat(messages: ChatMsg[]) {
       return {
         reply: text || "Sorry, I could not answer that. Please try again.",
         pending: ctx.pending ?? null,
+        tools: used,
       };
     }
 
     contents.push(content);
     const responses = [];
     for (const c of calls) {
+      used.push(c.functionCall.name);
       const result = await executeTool(c.functionCall.name, c.functionCall.args ?? {}, ctx);
       responses.push({ functionResponse: { name: c.functionCall.name, response: { result } } });
     }
     contents.push({ role: "user", parts: responses });
   }
 
-  return { reply: "Sorry, that took too long. Please try again.", pending: ctx.pending ?? null };
+  return {
+    reply: "Sorry, that took too long. Please try again.",
+    pending: ctx.pending ?? null,
+    tools: used,
+  };
 }
