@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model LoanScheme {
+  id               String  @id
+  name             String
+  annualInterestBp Int     // 1200 = 12.00%
+  maxLtvBp         Int     // 7000 = 70%
+  tenureMonths     Int
+  description      String
+  isActive         Boolean @default(true)
+  leads            Lead[]
+}
+
+model Lead {
+  id              Int      @id @default(autoincrement())
+  name            String
+  mobileNumber    String
+  grossWeightMg   Int      // milligram, integer
+  netWeightMg     Int
+  karat           Int
+  planId          String
+  plan            LoanScheme @relation(fields: [planId], references: [id])
+  pureGoldMg      Int
+  goldValuePaise  Int
+  loanRupees      Int
+  status          String   @default("SUBMITTED")
+  createdAt       DateTime @default(now())
+
+  @@index([mobileNumber, createdAt])
+}
